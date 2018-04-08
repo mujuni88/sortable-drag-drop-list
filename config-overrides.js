@@ -5,6 +5,7 @@ const rewireLess = require('react-app-rewire-less')
 const rewireMobX = require('react-app-rewire-mobx')
 const rewireLodash = require('react-app-rewire-lodash')
 const rewireStyledComponents = require('react-app-rewire-styled-components')
+const rewirePostCss = require('react-app-rewire-postcss-cssnext')
 
 const lessOptions = {
   modifyVars: {
@@ -37,6 +38,7 @@ module.exports = function override (config, env) {
   }
 
   const rewires = compose(
+    rewirePostCss,
     rewireLess.withLoaderOptions(lessOptions),
     rewireMobX,
     rewireLodash,
