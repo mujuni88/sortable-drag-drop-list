@@ -3,7 +3,11 @@ import { Avatar } from 'antd'
 import { libs, Lib } from 'constants/'
 import { isUrl } from 'utils'
 
-export class LibList extends React.Component {
+interface LibState {
+  libs: Lib[]
+}
+
+export class LibList extends React.Component<{}, LibState> {
   state = {
     libs: libs
   }
@@ -12,8 +16,8 @@ export class LibList extends React.Component {
     const oldLib = this.state.libs[oldId]
     const newLib = this.state.libs[newId]
 
-    this.setState({
-      libs: this.state.libs.map((lib, id) => {
+    this.setState(prevState => ({
+      libs: prevState.libs.map((lib, id) => {
         if (id === oldId) {
           return newLib
         }
@@ -24,7 +28,7 @@ export class LibList extends React.Component {
 
         return lib
       })
-    })
+    }))
   }
 
   getAvatar = (item: Lib) => {
