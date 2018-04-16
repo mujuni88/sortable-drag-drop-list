@@ -2,6 +2,7 @@ import * as React from 'react'
 import { Avatar } from 'antd'
 import { libs, Lib } from 'constants/'
 import { isUrl } from 'utils'
+import { DragDropContext, Droppable, Draggable } from 'react-beautiful-dnd'
 
 interface LibState {
   libs: Lib[]
@@ -12,46 +13,23 @@ export class LibList extends React.Component<{}, LibState> {
     libs: libs
   }
 
-  swap = (oldId, newId) => {
-    const oldLib = this.state.libs[oldId]
-    const newLib = this.state.libs[newId]
-
-    this.setState(prevState => ({
-      libs: prevState.libs.map((lib, id) => {
-        if (id === oldId) {
-          return newLib
-        }
-
-        if (id === newId) {
-          return oldLib
-        }
-
-        return lib
-      })
-    }))
-  }
-
   getAvatar = (item: Lib) => {
     return isUrl(item.icon) ? <Avatar src={item.icon} /> : <Avatar>{item.icon}</Avatar>
   }
 
-  onDragStart = (ev) => {
-    ev.dataTransfer.dropEffect = 'copy'
-    ev.dataTransfer.setData('text/plain', ev.target.dataset.key)
-  }
+  onDragEnd = (result) => {
+    // dropped outside the list
+    if (!result.destination) {
+      return;
+    }
 
-  onDragOver = (ev) => {
-    ev.preventDefault()
-    ev.dataTransfer.dropEffect = 'move'
-  }
+    const libs = reorder(
+      this.state.libs,
+      result.source.index,
+      result.destination.index
+    )
 
-  onDrop = (ev) => {
-    ev.preventDefault()
-
-    const newId = ev.dataTransfer.getData('text')
-    const oldId = this.getId(ev.target)
-
-    this.swap(parseInt(oldId, 10), parseInt(newId, 10))
+    this.setState({libs})
   }
 
   getId = (node) => {
@@ -64,36 +42,61 @@ export class LibList extends React.Component<{}, LibState> {
 
   getRenderItem = (item: Lib, index: number) => {
     return (
-      <div 
-        id={`id-${index}`}
-        key={index}
-        data-key={index}
-        className="my-1 p-2 border border-grey-light hover:border-grey"
-        draggable={true}
-        onDragStart={this.onDragStart}
-      >
-        <div className="flex items-center">
-          {this.getAvatar(item)}
-          <div className="flex flex-col ml-2">
-            <a className="mb-1" href={item.url}>
-              {item.lib}
-            </a>
-            <span>{item.desc}</span>
+      <Draggable key={item.id} draggableId={item.id} index={index}>
+        {(provided, snapshot) => (
+          <div
+            ref={provided.innerRef}
+            className={`my-1 p-2 border border-grey-light hover:border-grey ${getItemStyle(snapshot.isDragging)}`}
+            {...provided.draggableProps}
+            {...provided.dragHandleProps}
+            style={provided.draggableProps.style}
+          >
+            <div className="flex items-center">
+              {this.getAvatar(item)}
+              <div className="flex flex-col ml-2">
+                <a className="mb-1" href={item.url}>
+                  {item.lib}
+                </a>
+                <span>{item.desc}</span>
+              </div>
+            </div>
           </div>
-        </div>
-      </div>
+        )}
+      </Draggable>
     )
   }
 
   render() {
     return (
-      <div
-        onDragOver={this.onDragOver}
-        onDrop={this.onDrop}
-        className="flex flex-col"
-      >
-        {this.state.libs.map(this.getRenderItem)}
-      </div>
+      <DragDropContext onDragEnd={this.onDragEnd}>
+        <Droppable droppableId="liblist">
+          {(provided, snapshot) => (
+            <div
+              ref={provided.innerRef}
+              className={`flex flex-col ${getListStyle(snapshot.isDraggingOver)}`}
+            >
+              {this.state.libs.map(this.getRenderItem)}
+              {provided.placeholder}
+            </div>
+          )}
+        </Droppable>
+      </DragDropContext>
     )
   }
+}
+
+function getListStyle(isDraggingOver: Boolean) {
+ return isDraggingOver ? 'bg-blue-lightest' : ''
+}
+
+function getItemStyle(isDragging: Boolean) {
+ return isDragging ? 'bg-green-lighter' : ''
+}
+
+function reorder(list: any[], srcIdx: number, destIdx: number) {
+  const items = Array.from(list)
+  const [removed] = items.splice(srcIdx, 1)
+  items.splice(destIdx, 0, removed)
+
+  return items
 }
